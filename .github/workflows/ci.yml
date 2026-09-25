@@ -1,0 +1,27 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install -r requirements-dev.txt
+      - run: flake8 --max-line-length=120 server agent client tests
+      - run: pytest -q
+
+  smoke:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: ci-only-password
+      AGENT_TOKEN: ci-agent-token
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up -d --build --wait
+      - name: drift is detected on node-b, node-a stays OK, accepting the baseline clears it
+        run: python3 demo/smoke.py
+      - if: always()
+        run: docker compose logs server && docker compose down -v

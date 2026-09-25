@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: driftguard
+      POSTGRES_DB: driftguard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U driftguard -d driftguard"]
+      interval: 5s
+      retries: 10
+
+  server:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+asyncpg://driftguard:${POSTGRES_PASSWORD}@db:5432/driftguard
+      API_TOKEN: ${API_TOKEN:-}
+      AGENT_TOKEN: ${AGENT_TOKEN:-}
+      STALE_AFTER_SECONDS: 30
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+
+  node-a:
+    build: {context: ., dockerfile: demo/Dockerfile.node}
+    hostname: node-a
+    environment: &agent
+      DRIFTGUARD_SERVER: http://server:8000
+      AGENT_TOKEN: ${AGENT_TOKEN:-}
+    depends_on:
+      server: {condition: service_healthy}
+
+  node-b:
+    build: {context: ., dockerfile: demo/Dockerfile.node}
+    hostname: node-b
+    environment: *agent
+    depends_on:
+      server: {condition: service_healthy}
+
+volumes:
+  pgdata:

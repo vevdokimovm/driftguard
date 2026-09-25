@@ -1,0 +1,13 @@
+# «Машина» для демонстрации: Debian с приложением, веб-сервером на 8080 и агентом DriftGuard.
+# Агент работает от root, как на настоящем сервере: ему нужно читать системные файлы.
+FROM python:3.12-slim
+COPY demo/build_debs.sh demo/node-entrypoint.sh demo/drift_scenario.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/*.sh && build_debs.sh /opt/debs && dpkg -i /opt/debs/demo-tool_1.0_all.deb
+COPY demo/app/ /srv/app/
+COPY demo/app/ /opt/golden/
+RUN chmod 0644 /srv/app/app.conf && chmod 0755 /srv/app/run.sh
+COPY agent/drift_agent.py /opt/driftguard/drift_agent.py
+ENV DRIFTGUARD_WATCH=/etc/passwd:/etc/group:/srv/app DRIFTGUARD_INTERVAL=5
+HEALTHCHECK --interval=5s --timeout=3s --retries=5 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')"
+ENTRYPOINT ["node-entrypoint.sh"]
