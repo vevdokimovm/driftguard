@@ -160,7 +160,7 @@ class DriftGuardApp(tk.Tk):
         self.drift.delete(*self.drift.get_children())
         for c in changes:
             self.drift.insert("", "end", tags=(c["kind"],), values=(
-                c["section"], c["key"], c["kind"], c["expected"] or "—", c["actual"] or "—"))
+                c["section"], c["key"], c["kind"], _short(c["expected"]), _short(c["actual"])))
 
     def accept_baseline(self) -> None:
         host_id = self.selected_host()
@@ -189,6 +189,13 @@ class DriftGuardApp(tk.Tk):
         table.delete(*table.get_children())
         for row in rows:
             table.insert("", "end", values=row)
+
+
+def _short(value: str | None) -> str:
+    """Длинные значения (хэши) сокращаются, чтобы поместиться в колонку; полное значение — в API."""
+    if not value:
+        return "—"
+    return value if len(value) <= 24 else value[:16] + "…"
 
 
 def _time(value: str | None) -> str:
