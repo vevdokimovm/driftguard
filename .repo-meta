@@ -1,0 +1,3 @@
+description=Контроль дрейфа конфигурации серверов: агент, сервер FastAPI + PostgreSQL, клиент Tkinter
+topics=python,fastapi,postgresql,tkinter,configuration-drift,misis
+private=false
